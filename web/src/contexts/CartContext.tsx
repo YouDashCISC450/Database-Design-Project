@@ -6,11 +6,15 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useCurrentUser } from "@/contexts/UserContext";
 
-const STORAGE_KEY = "youdash.cart";
+function cartKey(userId: number) {
+  return `youdash.cart.${userId}`;
+}
 
 export type CartItem = {
   foodItemId: number;
@@ -55,40 +59,52 @@ const CartContext = createContext<CartContextValue>({
   clearCart: () => {},
 });
 
-function persistCart(cart: Cart) {
+function persistCart(userId: number, cart: Cart) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+    localStorage.setItem(cartKey(userId), JSON.stringify(cart));
   } catch {
     // localStorage unavailable
   }
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<Cart>(EMPTY_CART);
-  const [hydrated, setHydrated] = useState(false);
-
-  // Hydrate from localStorage on client mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as Cart;
-        if (parsed && Array.isArray(parsed.items)) {
-          setCart(parsed);
-        }
+function loadCart(userId: number): Cart {
+  try {
+    const stored = localStorage.getItem(cartKey(userId));
+    if (stored) {
+      const parsed = JSON.parse(stored) as Cart;
+      if (parsed && Array.isArray(parsed.items)) {
+        return parsed;
       }
-    } catch {
-      // ignore
     }
-    setHydrated(true);
-  }, []);
+  } catch {
+    // ignore
+  }
+  return EMPTY_CART;
+}
 
-  // Persist whenever cart changes (after hydration)
+export function CartProvider({ children }: { children: ReactNode }) {
+  const { currentUser } = useCurrentUser();
+  const [cart, setCart] = useState<Cart>(EMPTY_CART);
+  const userIdRef = useRef<number | null>(null);
+
+  // When currentUser changes, load that user's cart from localStorage
   useEffect(() => {
-    if (hydrated) {
-      persistCart(cart);
+    if (!currentUser) {
+      setCart(EMPTY_CART);
+      userIdRef.current = null;
+      return;
     }
-  }, [cart, hydrated]);
+
+    userIdRef.current = currentUser.userId;
+    setCart(loadCart(currentUser.userId));
+  }, [currentUser?.userId]);
+
+  // Persist whenever cart changes (only when we have a user)
+  useEffect(() => {
+    if (userIdRef.current !== null) {
+      persistCart(userIdRef.current, cart);
+    }
+  }, [cart]);
 
   const addItem = useCallback(
     (

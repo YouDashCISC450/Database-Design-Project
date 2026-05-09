@@ -1,3 +1,9 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCurrentUser } from "@/contexts/UserContext";
+
 type Order = {
   Order_id: number;
   Order_date: string;
@@ -5,25 +11,37 @@ type Order = {
   Order_price: number | string;
   Order_details: string | null;
   restaurant_name: string | null;
-  User_Id: number;
+  User_id: number;
 };
 
-async function getOrders(): Promise<Order[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+export default function OrdersPage() {
+  const { currentUser, loading: userLoading } = useCurrentUser();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const res = await fetch(`${baseUrl}/api/orders`, {
-    cache: 'no-store',
-  });
+  useEffect(() => {
+    if (userLoading || !currentUser) return;
 
-  if (!res.ok) {
-    throw new Error('Failed to load orders');
+    setLoading(true);
+    fetch(`/api/orders?userId=${currentUser.userId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load orders");
+        return res.json();
+      })
+      .then((data) => setOrders(data))
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, [currentUser, userLoading]);
+
+  if (userLoading || !currentUser || loading) {
+    return (
+      <main className="min-h-screen bg-purple-50 px-6 py-10">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </main>
+    );
   }
-
-  return res.json();
-}
-
-export default async function OrdersPage() {
-  const orders = await getOrders();
 
   return (
     <main className="min-h-screen bg-purple-50 px-6 py-10">
@@ -42,9 +60,10 @@ export default async function OrdersPage() {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => (
-              <div
+              <Link
                 key={order.Order_id}
-                className="rounded-xl border border-purple-100 bg-white p-5 shadow-sm"
+                href={`/orders/${order.Order_id}`}
+                className="block rounded-xl border border-purple-100 bg-white p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -76,7 +95,7 @@ export default async function OrdersPage() {
                     {order.Order_details}
                   </p>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
         )}

@@ -88,7 +88,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-export async function GET() {
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const rawUserId = searchParams.get('userId');
+  const userId = Number(rawUserId);
+
+  if (!rawUserId || !Number.isInteger(userId) || userId <= 0) {
+    return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+  }
+
   try {
     const rows = await sql`
       SELECT 
@@ -101,6 +110,7 @@ export async function GET() {
         o."User_id"
       FROM "Orders" o
       LEFT JOIN "Restaurants" r ON o."Restaurant_id" = r."Restaurant_id"
+      WHERE o."User_id" = ${userId}
       ORDER BY o."Order_date" DESC, o."Order_id" DESC
     `;
 
@@ -109,4 +119,4 @@ export async function GET() {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+}

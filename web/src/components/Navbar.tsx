@@ -58,7 +58,7 @@ export default function Navbar() {
               value={currentUser?.userId ?? 1}
               onChange={(e) => setCurrentUserId(Number(e.target.value))}
               disabled={loading}
-              className="border border-primary-100 rounded-md px-3 py-1.5 bg-white text-sm cursor-pointer hover:border-primary transition-colors"
+              className="border border-primary-100 rounded-md px-3 py-1.5 bg-white text-sm text-gray-700 cursor-pointer hover:border-primary transition-colors"
             >
               {loading ? (
                 <option>Loading…</option>
