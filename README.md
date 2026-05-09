@@ -1,6 +1,7 @@
 # Database-Design-Project
 
 YouDash — a DoorDash-style food pickup app. Class database design project.
+LIVE DEMO: database-design-project.vercel.app
 
 ## Web Frontend
 
