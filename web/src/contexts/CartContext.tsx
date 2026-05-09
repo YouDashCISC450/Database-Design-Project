@@ -87,17 +87,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart>(EMPTY_CART);
   const userIdRef = useRef<number | null>(null);
 
+  const currentUserId = currentUser?.userId ?? null;
+
   // When currentUser changes, load that user's cart from localStorage
   useEffect(() => {
-    if (!currentUser) {
+    if (currentUserId === null) {
       setCart(EMPTY_CART);
       userIdRef.current = null;
       return;
     }
 
-    userIdRef.current = currentUser.userId;
-    setCart(loadCart(currentUser.userId));
-  }, [currentUser?.userId]);
+    userIdRef.current = currentUserId;
+    setCart(loadCart(currentUserId));
+  }, [currentUserId]);
 
   // Persist whenever cart changes (only when we have a user)
   useEffect(() => {
